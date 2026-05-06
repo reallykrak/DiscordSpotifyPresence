@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Nuron's RPC</title>
+<style>
+:root{
+  --bg:#080810;
+  --surface:#0e0e18;
+  --card:#13131f;
+  --card2:#181826;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.11);
+  --green:#1DB954;
+  --green2:#1ed760;
+  --purple:#5865F2;
+  --red:#ed4245;
+  --yellow:#f5a623;
+  --text:#eeeef5;
+  --sub:#a0a0b8;
+  --muted:#5a5a72;
+  --glow-green:rgba(29,185,84,0.18);
+  --glow-purple:rgba(88,101,242,0.18);
+  --sidebar:220px;
+  --radius:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
+
+/* ════════ SIDEBAR ════════ */
+.sidebar{
+  width:var(--sidebar);
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+  z-index:20;
+  position:relative;
+}
+
+/* logo */
+.s-logo{
+  padding:22px 18px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:11px;
+  text-decoration:none;
+}
+.s-logo-mark{
+  width:38px;height:38px;
+  border-radius:10px;
+  background:linear-gradient(135deg,#1DB954,#0f7a32);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  box-shadow:0 4px 20px rgba(29,185,84,0.4);
+  position:relative;
+  overflow:hidden;
+}
+.s-logo-mark::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);
+  border-radius:10px;
+}
+.s-logo-text{line-height:1.25}
+.s-logo-name{font-size:14px;font-weight:800;color:var(--text);letter-spacing:.3px}
+.s-logo-by{font-size:11px;color:var(--muted);margin-top:1px}
+.s-logo-by span{color:var(--green);font-weight:600}
+
+.s-nav{padding:14px 10px;flex:1;overflow-y:auto}
+.s-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);padding:10px 10px 6px;margin-top:4px}
+.s-item{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 11px;border-radius:9px;
+  cursor:pointer;color:var(--sub);font-size:13.5px;font-weight:500;
+  transition:all .16s;margin-bottom:1px;
+  user-select:none;position:relative;
+}
+.s-item svg{flex-shrink:0;opacity:.6;transition:opacity .16s}
+.s-item:hover{background:rgba(255,255,255,0.05);color:var(--text)}
+.s-item:hover svg{opacity:.9}
+.s-item.active{
+  background:rgba(29,185,84,0.1);
+  color:#c8f5d8;
+}
+.s-item.active::before{
+  content:'';position:absolute;left:0;top:20%;bottom:20%;
+  width:3px;background:var(--green);border-radius:0 3px 3px 0;
+}
+.s-item.active svg{opacity:1;color:var(--green2)}
+.s-badge{
+  margin-left:auto;
+  background:rgba(29,185,84,0.15);
+  color:var(--green2);
+  font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:20px;
+  min-width:20px;text-align:center;
+}
+
+/* sidebar bottom */
+.s-bottom{padding:14px;border-top:1px solid var(--border)}
+.bot-card{
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px;
+}
+.bot-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.bot-card-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+.pulse-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--muted);
+  transition:all .4s;position:relative;
+}
+.pulse-dot.online{
+  background:var(--green);
+  box-shadow:0 0 0 0 rgba(29,185,84,0.6);
+  animation:pulse-ring 2s infinite;
+}
+.pulse-dot.offline{background:var(--red)}
+@keyframes pulse-ring{
+  0%{box-shadow:0 0 0 0 rgba(29,185,84,0.6)}
+  70%{box-shadow:0 0 0 8px rgba(29,185,84,0)}
+  100%{box-shadow:0 0 0 0 rgba(29,185,84,0)}
+}
+.bot-status-text{font-size:13px;font-weight:700;color:var(--sub);margin-bottom:10px}
+.bot-status-text.online{color:var(--green2)}
+
+.start-btn{
+  width:100%;padding:10px;
+  background:linear-gradient(135deg,#1DB954,#128a3a);
+  border:none;border-radius:9px;
+  color:#fff;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .2s;
+  letter-spacing:.5px;display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.start-btn:hover{filter:brightness(1.12);transform:translateY(-1px);box-shadow:0 6px 20px rgba(29,185,84,0.3)}
+.start-btn:active{transform:translateY(0);filter:none}
+.start-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none;box-shadow:none}
+.start-btn.stop{background:linear-gradient(135deg,#c0392b,#7b241c)}
+.start-btn.stop:hover{box-shadow:0 6px 20px rgba(192,57,43,0.3)}
+
+/* ════════ MAIN ════════ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* topbar */
+.topbar{
+  height:60px;
+  background:rgba(14,14,24,0.95);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 26px;flex-shrink:0;
+  position:sticky;top:0;z-index:10;
+}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-title{font-size:16px;font-weight:800;color:var(--text)}
+.topbar-title span{color:var(--green)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.chip{
+  font-size:11px;font-weight:600;
+  padding:4px 11px;border-radius:20px;
+  border:1px solid var(--border2);color:var(--sub);
+  transition:all .2s;
+}
+.chip.green{border-color:rgba(29,185,84,.35);color:var(--green2);background:rgba(29,185,84,.08)}
+.chip.purple{border-color:rgba(88,101,242,.35);color:#9fa8f8;background:rgba(88,101,242,.08)}
+
+/* content */
+.content{flex:1;overflow-y:auto;padding:24px 26px}
+.tab-panel{display:none;animation:fadeUp .2s ease}
+.tab-panel.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ════════ SECTION HEADER ════════ */
+.sec-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.sec-title{font-size:15px;font-weight:800;color:var(--text)}
+.sec-desc{font-size:12.5px;color:var(--muted);margin-top:3px}
+
+/* ════════ BUTTONS ════════ */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 17px;border-radius:9px;
+  font-size:13px;font-weight:700;
+  border:none;cursor:pointer;transition:all .18s;
+  white-space:nowrap;
+}
+.btn svg{flex-shrink:0}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:var(--green2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(29,185,84,.3)}
+.btn-purple{background:var(--purple);color:#fff}
+.btn-purple:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--sub);border:1px solid var(--border2)}
+.btn-ghost:hover{background:rgba(255,255,255,.09);color:var(--text)}
+.btn-danger{background:rgba(237,66,69,.12);color:#f07878;border:1px solid rgba(237,66,69,.25)}
+.btn-danger:hover{background:rgba(237,66,69,.22);color:#ffaaaa}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important;filter:none!important;box-shadow:none!important}
+
+/* ════════ SEARCH BAR ════════ */
+.search-wrap{position:relative;margin-bottom:20px}
+.search-icon{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  color:var(--muted);pointer-events:none;
+}
+.search-input{
+  width:100%;
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:var(--radius);
+  padding:12px 14px 12px 42px;
+  color:var(--text);font-size:14px;
+  outline:none;transition:all .2s;
+}
+.search-input::placeholder{color:var(--muted)}
+.search-input:focus{
+  border-color:var(--green);
+  background:rgba(29,185,84,0.04);
+  box-shadow:0 0 0 3px rgba(29,185,84,0.1);
+}
+.search-results{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:var(--card2);
+  border:1px solid var(--border2);
+  border-radius:var(--radius);
+  overflow:hidden;
+  z-index:50;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);
+  display:none;
+}
+.search-results.open{display:block}
+.sr-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 14px;
+  cursor:pointer;transition:background .15s;
+  border-bottom:1px solid var(--border);
+}
+.sr-item:last-child{border-bottom:none}
+.sr-item:hover{background:rgba(29,185,84,0.07)}
+.sr-cover{
+  width:40px;height:40px;border-radius:6px;
+  object-fit:cover;flex-shrink:0;
+  background:var(--surface);
+}
+.sr-info{flex:1;min-width:0}
+.sr-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-artist{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-dur{font-size:11px;color:var(--muted);flex-shrink:0;margin-left:auto;padding-left:8px}
+.sr-add-btn{
+  flex-shrink:0;
+  background:rgba(29,185,84,.12);
+  border:1px solid rgba(29,185,84,.3);
+  border-radius:7px;padding:5px 11px;
+  font-size:12px;font-weight:700;color:var(--green2);
+  cursor:pointer;transition:all .15s;margin-left:8px;
+}
+.sr-add-btn:hover{background:rgba(29,185,84,.25);transform:scale(1.04)}
+.sr-add-btn.added{background:rgba(255,255,255,.05);border-color:var(--border2);color:var(--muted);pointer-events:none}
+.sr-empty{padding:20px;text-align:center;color:var(--muted);font-size:13px}
+.sr-loading{padding:16px;text-align:center}
+
+/* ════════ SONGS TABLE ════════ */
+.songs-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.songs-table{width:100%;border-collapse:collapse}
+.songs-table thead tr{border-bottom:1px solid var(--border)}
+.songs-table th{
+  padding:11px 14px;text-align:left;
+  font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);
+}
+.songs-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.035);transition:background .14s}
+.songs-table tbody tr:last-child{border-bottom:none}
+.songs-table tbody tr:hover{background:rgba(255,255,255,0.022)}
+.songs-table td{padding:11px 14px;font-size:13px;vertical-align:middle}
+.t-cover{width:42px;height:42px;border-radius:6px;object-fit:cover;background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.t-name{font-weight:700;color:var(--text);margin-bottom:2px;font-size:13px}
+.t-artist{font-size:11.5px;color:var(--muted)}
+.t-album{font-size:12.5px;color:var(--sub)}
+.t-dur{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.t-index{font-size:12px;color:var(--muted);width:32px;text-align:right}
+
+.empty-wrap{padding:54px 20px;text-align:center}
+.empty-ico{
+  width:54px;height:54px;border-radius:50%;
+  background:rgba(255,255,255,.04);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;font-size:22px;
+}
+.empty-wrap h3{font-size:14px;font-weight:700;color:var(--sub);margin-bottom:5px}
+.empty-wrap p{font-size:12.5px;color:var(--muted)}
+
+/* ════════ TOKENS ════════ */
+.add-token-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  margin-bottom:20px;
+}
+.add-token-row{display:flex;gap:10px;align-items:flex-end}
+.add-token-row .fg{flex:1}
+.tokens-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.tok-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px 16px 16px;
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;gap:10px;
+  transition:border-color .2s,transform .2s,box-shadow .2s;
+  position:relative;
+}
+.tok-card:hover{border-color:rgba(88,101,242,.35);transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.3)}
+.tok-avatar{
+  width:60px;height:60px;border-radius:50%;
+  border:2.5px solid var(--border2);
+  object-fit:cover;background:var(--surface);
+}
+.tok-name{font-size:14px;font-weight:800;color:var(--text)}
+.tok-id{font-size:11px;color:var(--muted);margin-top:1px}
+.tok-date{font-size:11px;color:var(--muted)}
+.tok-active{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.3);color:var(--green2)}
+.tok-remove{
+  position:absolute;top:10px;right:10px;
+  background:rgba(237,66,69,.1);border:1px solid rgba(237,66,69,.2);
+  border-radius:6px;padding:4px 8px;
+  font-size:11px;font-weight:700;color:#f08080;
+  cursor:pointer;transition:all .16s;
+}
+.tok-remove:hover{background:rgba(237,66,69,.22);color:#ffaaaa}
+
+/* ════════ SETTINGS ════════ */
+.settings-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:16px}
+.settings-section-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid1{display:grid;grid-template-columns:1fr;gap:14px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:6px}
+.fg.full{grid-column:1/-1}
+.flabel{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.9px}
+.flabel small{font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400;margin-left:4px}
+.finput,.ftextarea{
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--border2);
+  border-radius:9px;
+  padding:10px 13px;
+  color:var(--text);font-size:13.5px;
+  outline:none;transition:all .18s;width:100%;
+  font-family:inherit;
+}
+.finput::placeholder,.ftextarea::placeholder{color:var(--muted)}
+.finput:focus,.ftextarea:focus{
+  border-color:var(--green);
+  background:rgba(29,185,84,0.04);
+  box-shadow:0 0 0 3px rgba(29,185,84,0.1);
+}
+.ftextarea{resize:vertical;min-height:80px}
+.fhint{font-size:11px;color:var(--muted);margin-top:1px;line-height:1.5}
+.divider{height:1px;background:var(--border);margin:4px 0;grid-column:1/-1}
+.settings-actions{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding-top:4px}
+.save-ok{font-size:12.5px;color:var(--green2)}
+.save-err{font-size:12.5px;color:#f07878}
+
+.info-box{
+  background:rgba(88,101,242,0.06);
+  border:1px solid rgba(88,101,242,0.18);
+  border-radius:var(--radius);
+  padding:16px 18px;
+}
+.info-box-title{font-size:13px;font-weight:700;color:#b0bbff;margin-bottom:8px}
+.info-box ol{font-size:12.5px;color:var(--sub);line-height:2;padding-left:16px}
+.info-box ol strong{color:var(--text)}
+
+/* ════════ MODAL ════════ */
+.overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:blur(8px);
+  z-index:100;
+  display:none;align-items:center;justify-content:center;
+}
+.overlay.open{display:flex}
+.modal{
+  background:var(--card2);
+  border:1px solid var(--border2);
+  border-radius:16px;
+  padding:26px;
+  width:92%;max-width:430px;
+  animation:popIn .2s ease;
+}
+@keyframes popIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:5px}
+.modal-desc{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.modal-warn{font-size:13px;color:#f5b84a;background:rgba(245,184,74,.07);border:1px solid rgba(245,184,74,.2);border-radius:8px;padding:10px 13px;margin-bottom:12px;line-height:1.6;display:none}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+
+/* ════════ TOAST ════════ */
+#toasts{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:9px;z-index:9999;pointer-events:none}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  background:var(--card2);
+  border:1px solid var(--border2);
+  border-radius:10px;padding:12px 16px;
+  font-size:13px;font-weight:500;color:var(--text);
+  box-shadow:0 10px 36px rgba(0,0,0,.55);
+  pointer-events:all;
+  animation:tIn .22s ease;
+  min-width:220px;max-width:320px;
+}
+.toast.s{border-left:3px solid var(--green)}
+.toast.e{border-left:3px solid var(--red)}
+.toast.i{border-left:3px solid var(--purple)}
+@keyframes tIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes tOut{from{opacity:1}to{opacity:0;transform:translateX(16px)}}
+
+/* ════════ SPINNER ════════ */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:s .55s linear infinite;flex-shrink:0}
+@keyframes s{to{transform:rotate(360deg)}}
+
+/* responsive */
+@media(max-width:560px){
+  .sidebar{width:58px}
+  .s-logo-text,.s-section,.s-item span,.s-bottom .bot-card-label,.s-bottom .bot-status-text,.s-bottom .start-btn span,.s-badge{display:none}
+  .s-item{justify-content:center;padding:11px}
+  .s-logo{justify-content:center;padding:16px 10px}
+  .s-logo-text{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="sidebar">
+  <div class="s-logo">
+    <div class="s-logo-mark">
+      <!-- Spotify icon -->
+      <svg width="20" height="20" viewBox="0 0 168 168" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M83.996 0C37.748 0 0 37.746 0 84.001c0 46.252 37.748 84 83.996 84 46.261 0 84.004-37.748 84.004-84C168 37.746 130.257 0 83.996 0zM122.4 121.22c-1.61 2.644-5.06 3.47-7.702 1.862-21.105-12.899-47.666-15.82-78.942-8.67-3.01.69-6.01-1.186-6.702-4.194-.694-3.012 1.18-6.012 4.196-6.706 34.236-7.826 63.603-4.456 87.3 10.012 2.644 1.608 3.468 5.054 1.85 7.696zm10.952-24.362c-2.022 3.29-6.316 4.322-9.608 2.3-24.152-14.847-61.017-19.146-89.577-10.468-3.706 1.12-7.622-1.002-8.742-4.706-1.12-3.702 1.002-7.618 4.706-8.738 32.662-9.918 73.218-5.116 101 11.974 3.29 2.024 4.32 6.32 2.22 9.638zm.94-25.39c-28.967-17.214-76.774-18.794-104.42-10.4-4.44 1.348-9.134-1.166-10.48-5.604-1.35-4.444 1.16-9.138 5.604-10.486 31.836-9.674 84.77-7.808 118.18 12.03 3.988 2.366 5.286 7.49 2.92 11.474-2.36 3.992-7.494 5.294-11.804 2.986z"/>
+      </svg>
+    </div>
+    <div class="s-logo-text">
+      <div class="s-logo-name">Nuron's RPC</div>
+      <div class="s-logo-by">made by <span>reallykrak</span></div>
+    </div>
+  </div>
+
+  <nav class="s-nav">
+    <div class="s-section">Main</div>
+    <div class="s-item active" data-tab="songs">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg>
+      <span>Songs</span>
+      <span class="s-badge" id="navSongBadge">0</span>
+    </div>
+    <div class="s-item" data-tab="tokens">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+      <span>Tokens</span>
+      <span class="s-badge" id="navTokenBadge">0</span>
+    </div>
+    <div class="s-item" data-tab="settings">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span>Settings</span>
+    </div>
+  </nav>
+
+  <div class="s-bottom">
+    <div class="bot-card">
+      <div class="bot-card-header">
+        <span class="bot-card-label">Bot Status</span>
+        <div class="pulse-dot offline" id="statusDot"></div>
+      </div>
+      <div class="bot-status-text" id="statusText">Offline</div>
+      <button class="start-btn" id="mainStartBtn" onclick="handleStart()">
+        <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <span>Start Bot</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════ MAIN ══════════ -->
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="topbarTitle">🎵 <span>Songs</span> Queue</div>
+    </div>
+    <div class="topbar-right">
+      <span class="chip green" id="chipSongs">0 songs</span>
+      <span class="chip purple" id="chipTokens">0 tokens</span>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ══ SONGS TAB ══ -->
+    <div class="tab-panel active" id="tab-songs">
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">Song Queue</div>
+          <div class="sec-desc">These tracks cycle as your fake Spotify presence on Discord</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openLinkModal()">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Add via URL
+        </button>
+      </div>
+
+      <!-- search -->
+      <div class="search-wrap">
+        <span class="search-icon">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </span>
+        <input class="search-input" id="searchInput" type="text" placeholder="Search Spotify — type a song name and press Enter or wait…" autocomplete="off"/>
+        <div class="search-results" id="searchResults"></div>
+      </div>
+
+      <div class="songs-card">
+        <table class="songs-table">
+          <thead>
+            <tr>
+              <th style="width:42px"></th>
+              <th style="width:52px"></th>
+              <th>Track</th>
+              <th>Album</th>
+              <th>Duration</th>
+              <th style="width:90px">Action</th>
+            </tr>
+          </thead>
+          <tbody id="songsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ TOKENS TAB ══ -->
+    <div class="tab-panel" id="tab-tokens">
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">Discord Tokens</div>
+          <div class="sec-desc">Add your Discord account — profile loads automatically from Discord API</div>
+        </div>
+      </div>
+
+      <div class="add-token-card">
+        <div class="sec-title" style="font-size:13.5px;margin-bottom:14px">Add Token</div>
+        <div class="add-token-row">
+          <div class="fg">
+            <label class="flabel">Discord Token</label>
+            <input type="password" class="finput" id="tokenInput" placeholder="Paste your Discord user token…"/>
+          </div>
+          <button class="btn btn-purple" id="addTokenBtn" onclick="addToken()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Add
+          </button>
+        </div>
+        <div class="fhint" style="margin-top:9px">⚠ Your token is stored only on this server and never shared or pushed to GitHub. Keep it private.</div>
+      </div>
+
+      <div class="tokens-grid" id="tokensGrid"></div>
+    </div>
+
+    <!-- ══ SETTINGS TAB ══ -->
+    <div class="tab-panel" id="tab-settings">
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">Settings</div>
+          <div class="sec-desc">Configure voice channels and Spotify API credentials, then save</div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-section-title">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15.536 8.464a5 5 0 010 7.072M12 18.071V5.929M8.464 8.464a5 5 0 000 7.072"/></svg>
+          Voice Channel
+        </div>
+        <div class="grid1">
+          <div class="fg">
+            <label class="flabel">Voice Channel IDs <small>one per line</small></label>
+            <textarea class="ftextarea" id="channelsInput" rows="3" placeholder="Paste voice channel IDs here, one per line…"></textarea>
+            <div class="fhint">In Discord: Enable Developer Mode → right-click voice channel → Copy ID</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-section-title">
+          <svg width="16" height="16" viewBox="0 0 168 168" fill="var(--green)" xmlns="http://www.w3.org/2000/svg"><path d="M83.996 0C37.748 0 0 37.746 0 84.001c0 46.252 37.748 84 83.996 84 46.261 0 84.004-37.748 84.004-84C168 37.746 130.257 0 83.996 0zM122.4 121.22c-1.61 2.644-5.06 3.47-7.702 1.862-21.105-12.899-47.666-15.82-78.942-8.67-3.01.69-6.01-1.186-6.702-4.194-.694-3.012 1.18-6.012 4.196-6.706 34.236-7.826 63.603-4.456 87.3 10.012 2.644 1.608 3.468 5.054 1.85 7.696zm10.952-24.362c-2.022 3.29-6.316 4.322-9.608 2.3-24.152-14.847-61.017-19.146-89.577-10.468-3.706 1.12-7.622-1.002-8.742-4.706-1.12-3.702 1.002-7.618 4.706-8.738 32.662-9.918 73.218-5.116 101 11.974 3.29 2.024 4.32 6.32 2.22 9.638zm.94-25.39c-28.967-17.214-76.774-18.794-104.42-10.4-4.44 1.348-9.134-1.166-10.48-5.604-1.35-4.444 1.16-9.138 5.604-10.486 31.836-9.674 84.77-7.808 118.18 12.03 3.988 2.366 5.286 7.49 2.92 11.474-2.36 3.992-7.494 5.294-11.804 2.986z"/></svg>
+          Spotify API Credentials
+        </div>
+        <div class="grid2">
+          <div class="fg">
+            <label class="flabel">Client ID</label>
+            <input type="text" class="finput" id="clientIdInput" placeholder="Your Spotify Client ID"/>
+            <div class="fhint">developer.spotify.com/dashboard</div>
+          </div>
+          <div class="fg">
+            <label class="flabel">Client Secret</label>
+            <input type="password" class="finput" id="clientSecretInput" placeholder="Your Spotify Client Secret"/>
+            <div class="fhint">Keep private — stored on server only</div>
+          </div>
+          <div class="divider"></div>
+          <div class="settings-actions">
+            <button class="btn btn-green" id="saveBtn" onclick="saveSettings()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+              Save Settings
+            </button>
+            <span id="saveMsg"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-box-title">🎵 How to get Spotify credentials</div>
+        <ol>
+          <li>Go to <strong>developer.spotify.com/dashboard</strong> and log in</li>
+          <li>Click <strong>Create App</strong> — fill in any name and description</li>
+          <li>Copy your <strong>Client ID</strong> and click <strong>View client secret</strong></li>
+          <li>Paste both above and click <strong>Save Settings</strong></li>
+          <li>Now the search bar on Songs tab will work!</li>
+        </ol>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ══════════ MODALS ══════════ -->
+<div class="overlay" id="linkModal">
+  <div class="modal">
+    <div class="modal-title">Add Songs via Spotify URL</div>
+    <div class="modal-desc">Paste one or more Spotify track links (one per line). You can find these by right-clicking a song in Spotify → Share → Copy Song Link.</div>
+    <div class="fg">
+      <label class="flabel">Track URLs</label>
+      <textarea class="ftextarea" id="linkInput" rows="5" placeholder="https://open.spotify.com/track/...&#10;https://open.spotify.com/track/..."></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeLinkModal()">Cancel</button>
+      <button class="btn btn-green" id="addLinksBtn" onclick="addViaLinks()">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Add Songs
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="startModal">
+  <div class="modal">
+    <div class="modal-title">Start the Bot?</div>
+    <div class="modal-desc">The bot will join all configured voice channels and start cycling Spotify presence for every added token.</div>
+    <div class="modal-warn" id="startWarn"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeStartModal()">Cancel</button>
+      <button class="btn btn-green" id="confirmStartBtn" onclick="confirmStart()">
+        <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Start Bot
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* ══════════ STATE ══════════ */
+let songs   = [];
+let tokens  = [];
+let started = false;
+let searchTimer = null;
+let addedIds = new Set();
+
+/* ══════════ INIT ══════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  loadAll();
+  setInterval(checkStatus, 6000);
+  initSearch();
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-wrap')) closeSearchResults();
+  });
+});
+
+async function loadAll() {
+  await Promise.all([loadSongs(), loadTokens(), loadSettings(), checkStatus()]);
+}
+
+/* ══════════ TABS ══════════ */
+const tabTitles = {
+  songs:    '🎵 <span>Songs</span> Queue',
+  tokens:   '👤 <span>Tokens</span>',
+  settings: '⚙️ <span>Settings</span>'
+};
+document.querySelectorAll('.s-item[data-tab]').forEach(el => {
+  el.addEventListener('click', () => {
+    const tab = el.dataset.tab;
+    document.querySelectorAll('.s-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('topbarTitle').innerHTML = tabTitles[tab];
+    if (tab !== 'songs') closeSearchResults();
+  });
+});
+
+/* ══════════ SONGS ══════════ */
+async function loadSongs() {
+  const res = await fetch('/songs').catch(()=>null);
+  if (!res?.ok) return;
+  songs = await res.json();
+  addedIds = new Set(songs.map(s => s.track?.id).filter(Boolean));
+  renderSongs();
+}
+
+function renderSongs() {
+  const n = songs.length;
+  document.getElementById('navSongBadge').textContent = n;
+  document.getElementById('chipSongs').textContent = n + ' song' + (n!==1?'s':'');
+  const tbody = document.getElementById('songsBody');
+  if (!n) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-wrap"><div class="empty-ico">🎵</div><h3>No songs yet</h3><p>Search for a song above or paste a Spotify URL</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = songs.map((s, i) => {
+    const t = s.track||{}, alb = t.album||{};
+    const artists = (alb.artists||[]).map(a=>a.name).join(', ');
+    const cover   = (alb.images||[])[0]?.url||'';
+    return `<tr>
+      <td><span class="t-index">${i+1}</span></td>
+      <td><img class="t-cover" src="${cover}" alt="" onerror="this.style.opacity='.2'"/></td>
+      <td><div class="t-name">${esc(t.name||'—')}</div><div class="t-artist">${esc(artists)}</div></td>
+      <td class="t-album">${esc(alb.name||'—')}</td>
+      <td class="t-dur">${fmtMs(t.duration_ms)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteSong('${t.id}')">Remove</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function deleteSong(id) {
+  const res = await fetch('/songs/'+id,{method:'DELETE'}).catch(()=>null);
+  if (!res?.ok) return toast('Error removing song','e');
+  toast('Song removed','s');
+  addedIds.delete(id);
+  await loadSongs();
+  refreshSearchButtons();
+}
+
+function openLinkModal()  { document.getElementById('linkModal').classList.add('open'); }
+function closeLinkModal() { document.getElementById('linkModal').classList.remove('open'); document.getElementById('linkInput').value=''; }
+
+async function addViaLinks() {
+  const links = document.getElementById('linkInput').value.trim();
+  if (!links) return toast('Paste at least one URL','e');
+  const btn = document.getElementById('addLinksBtn');
+  setLoading(btn,'Adding…');
+  const res  = await fetch('/songs/links',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links})}).catch(()=>null);
+  unsetLoading(btn,'<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Add Songs');
+  if (!res?.ok) { const d=await res?.json().catch(()=>{}); return toast(d?.error||'Failed','e'); }
+  const d = await res.json();
+  toast(`Added ${d.added?.length||0} song(s)`,'s');
+  closeLinkModal();
+  await loadSongs();
+}
+
+/* ══════════ SEARCH ══════════ */
+function initSearch() {
+  const input = document.getElementById('searchInput');
+  input.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = input.value.trim();
+    if (!q) { closeSearchResults(); return; }
+    searchTimer = setTimeout(() => doSearch(q), 480);
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key==='Enter') { clearTimeout(searchTimer); doSearch(input.value.trim()); }
+    if (e.key==='Escape') closeSearchResults();
+  });
+  input.addEventListener('focus', () => {
+    if (input.value.trim()) document.getElementById('searchResults').classList.add('open');
+  });
+}
+
+async function doSearch(q) {
+  if (!q) return;
+  const box = document.getElementById('searchResults');
+  box.classList.add('open');
+  box.innerHTML = `<div class="sr-loading"><span class="spin"></span></div>`;
+  const res  = await fetch('/search?q='+encodeURIComponent(q)).catch(()=>null);
+  if (!res?.ok) {
+    const d = await res?.json().catch(()=>({}));
+    box.innerHTML = `<div class="sr-empty">⚠ ${esc(d?.error||'Search failed')}</div>`;
+    return;
+  }
+  const tracks = await res.json();
+  if (!tracks.length) { box.innerHTML=`<div class="sr-empty">No results for "${esc(q)}"</div>`; return; }
+  box.innerHTML = tracks.map(t => {
+    const already = addedIds.has(t.id);
+    return `<div class="sr-item">
+      <img class="sr-cover" src="${t.cover}" alt="" onerror="this.style.opacity='.2'"/>
+      <div class="sr-info">
+        <div class="sr-name">${esc(t.name)}</div>
+        <div class="sr-artist">${esc(t.artists)}</div>
+      </div>
+      <span class="sr-dur">${fmtMs(t.duration_ms)}</span>
+      <button class="sr-add-btn${already?' added':''}" id="sr-${t.id}" onclick="addFromSearch('${t.id}',this)" ${already?'disabled':''}>
+        ${already?'Added':'+ Add'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+async function addFromSearch(trackId, btn) {
+  btn.innerHTML = '<span class="spin"></span>';
+  btn.disabled  = true;
+  const res  = await fetch('/songs/add-track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trackId})}).catch(()=>null);
+  if (!res?.ok) {
+    const d = await res?.json().catch(()=>({}));
+    if (d?.error?.includes('already')) {
+      btn.className='sr-add-btn added'; btn.textContent='Added';
+    } else {
+      btn.innerHTML='+ Add'; btn.disabled=false;
+      toast(d?.error||'Failed to add','e');
+    }
+    return;
+  }
+  btn.className='sr-add-btn added'; btn.textContent='Added';
+  addedIds.add(trackId);
+  toast('Song added to queue','s');
+  await loadSongs();
+}
+
+function refreshSearchButtons() {
+  document.querySelectorAll('.sr-add-btn').forEach(btn => {
+    const id = btn.id?.replace('sr-','');
+    if (id && !addedIds.has(id)) {
+      btn.className='sr-add-btn'; btn.textContent='+ Add'; btn.disabled=false;
+    }
+  });
+}
+
+function closeSearchResults() {
+  document.getElementById('searchResults').classList.remove('open');
+}
+
+/* ══════════ TOKENS ══════════ */
+async function loadTokens() {
+  const res = await fetch('/tokens').catch(()=>null);
+  if (!res?.ok) return;
+  tokens = await res.json();
+  renderTokens();
+}
+
+function renderTokens() {
+  const n = tokens.length;
+  document.getElementById('navTokenBadge').textContent = n;
+  document.getElementById('chipTokens').textContent = n + ' token' + (n!==1?'s':'');
+  const grid = document.getElementById('tokensGrid');
+  if (!n) {
+    grid.innerHTML = `<div style="grid-column:1/-1"><div class="empty-wrap"><div class="empty-ico">👤</div><h3>No tokens added</h3><p>Add a Discord token above to get started</p></div></div>`;
+    return;
+  }
+  grid.innerHTML = tokens.map(t => `
+    <div class="tok-card">
+      <button class="tok-remove" onclick="removeToken('${t.discordId}')">✕</button>
+      <img class="tok-avatar" src="${t.avatar}" alt="" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'"/>
+      <div>
+        <div class="tok-name">${esc(t.username)}</div>
+        <div class="tok-id">ID: ${t.discordId}</div>
+        <div class="tok-date" style="margin-top:4px">${fmtDate(t.addedAt)}</div>
+      </div>
+      <span class="tok-active">● Connected</span>
+    </div>
+  `).join('');
+}
+
+async function addToken() {
+  const inp = document.getElementById('tokenInput');
+  const val = inp.value.trim();
+  if (!val) return toast('Enter a Discord token','e');
+  const btn = document.getElementById('addTokenBtn');
+  setLoading(btn,'');
+  const res  = await fetch('/tokens',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:val})}).catch(()=>null);
+  unsetLoading(btn,'<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Add');
+  if (!res?.ok){ const d=await res?.json().catch(()=>{}); return toast(d?.error||'Invalid token','e'); }
+  const d = await res.json();
+  toast(`Added ${d.profile?.username}`,'s');
+  inp.value='';
+  await loadTokens();
+}
+
+async function removeToken(id) {
+  const res = await fetch('/tokens/'+id,{method:'DELETE'}).catch(()=>null);
+  if (!res?.ok) return toast('Error','e');
+  toast('Token removed','i');
+  await loadTokens();
+}
+
+/* ══════════ SETTINGS ══════════ */
+async function loadSettings() {
+  const res = await fetch('/settings').catch(()=>null);
+  if (!res?.ok) return;
+  const d = await res.json();
+  document.getElementById('channelsInput').value    = (d.channels||[]).join('\n');
+  document.getElementById('clientIdInput').value    = d.Client||'';
+  document.getElementById('clientSecretInput').value= d.Secret||'';
+}
+
+async function saveSettings() {
+  const btn  = document.getElementById('saveBtn');
+  const msg  = document.getElementById('saveMsg');
+  const ch   = document.getElementById('channelsInput').value.split('\n').map(c=>c.trim()).filter(Boolean);
+  const cid  = document.getElementById('clientIdInput').value.trim();
+  const csec = document.getElementById('clientSecretInput').value.trim();
+  setLoading(btn,'Saving…');
+  const res  = await fetch('/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({channels:ch,Client:cid,Secret:csec})}).catch(()=>null);
+  unsetLoading(btn,'<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Save Settings');
+  if (!res?.ok){ msg.className='save-err'; msg.textContent='✗ Error saving'; return toast('Save failed','e'); }
+  msg.className='save-ok'; msg.textContent='✓ Saved at '+new Date().toLocaleTimeString();
+  toast('Settings saved!','s');
+}
+
+/* ══════════ STATUS / START ══════════ */
+async function checkStatus() {
+  const res = await fetch('/status').catch(()=>null);
+  if (!res?.ok) return;
+  const d = await res.json();
+  started  = d.started;
+  const dot= document.getElementById('statusDot');
+  const txt= document.getElementById('statusText');
+  const btn= document.getElementById('mainStartBtn');
+  if (started) {
+    dot.className='pulse-dot online'; txt.textContent='Online'; txt.className='bot-status-text online';
+    btn.className='start-btn stop';
+    btn.innerHTML='<svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"/></svg><span>Stop Bot</span>';
+  } else {
+    dot.className='pulse-dot offline'; txt.textContent='Offline'; txt.className='bot-status-text';
+    btn.className='start-btn';
+    btn.innerHTML='<svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span>Start Bot</span>';
+  }
+}
+
+function handleStart() {
+  if (started) { stopBot(); return; }
+  const warns = [];
+  if (!tokens.length) warns.push('⚠ No tokens added — go to Tokens tab first');
+  if (!songs.length)  warns.push('⚠ No songs in queue — add some tracks first');
+  const w = document.getElementById('startWarn');
+  if (warns.length) { w.innerHTML=warns.join('<br>'); w.style.display='block'; }
+  else w.style.display='none';
+  document.getElementById('startModal').classList.add('open');
+}
+function closeStartModal() { document.getElementById('startModal').classList.remove('open'); }
+
+async function confirmStart() {
+  const btn = document.getElementById('confirmStartBtn');
+  setLoading(btn,'Starting…');
+  const res  = await fetch('/start-button',{method:'POST',headers:{'Content-Type':'application/json'}}).catch(()=>null);
+  unsetLoading(btn,'<svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Start Bot');
+  if (!res?.ok){ const d=await res?.json().catch(()=>{}); return toast(d?.error||'Failed','e'); }
+  toast('Bot is starting…','s');
+  closeStartModal();
+  setTimeout(checkStatus,2500);
+}
+
+async function stopBot() {
+  await fetch('/stop-button',{method:'POST'}).catch(()=>null);
+  toast('Bot stopped','i');
+  checkStatus();
+}
+
+/* ══════════ UTILS ══════════ */
+function fmtMs(ms) {
+  if (!ms) return '—';
+  const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function toast(msg, type='i') {
+  const icons={s:'✓',e:'✕',i:'●'};
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${icons[type]}</span><span>${esc(msg)}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>{el.style.animation='tOut .22s ease forwards';setTimeout(()=>el.remove(),220);},3200);
+}
+function setLoading(btn, label) {
+  btn._orig=btn.innerHTML;
+  btn.innerHTML=`<span class="spin"></span>${label?' '+label:''}`;
+  btn.disabled=true;
+}
+function unsetLoading(btn, label) {
+  btn.innerHTML=label||btn._orig||'';
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
